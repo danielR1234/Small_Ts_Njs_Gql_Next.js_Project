@@ -1,6 +1,6 @@
 import 'reflect-metadata'
 import { MikroORM } from '@mikro-orm/core'
-import { __prod__ } from './entities/constants'
+import { COOKIE_NAME, __prod__ } from './entities/constants'
 // import { Post } from './entities/Post';
 import microConfig from './mikro-orm.config'
 import express from 'express'
@@ -9,20 +9,24 @@ import { buildSchema } from 'type-graphql'
 import { HelloResolver } from './resolvers/hello'
 import { PostResolver } from './resolvers/post'
 import { UserResolver } from './resolvers/user'
-import redis from 'redis'
+import Redis from 'ioredis'
 import session from 'express-session'
 import connectRedis from 'connect-redis'
 //import { MyContext } from './types'
 import cors from 'cors'
 
+//import { sendEmail } from './utils/sendEmail'
+// https://ethereal.email/message/YHdn9OPgXlMKjniaYHdn9th64QXwHUBlAAAAAc.0DmiqdQs6AGCEBpozz98
+
 const main = async () => {
   const orm = await MikroORM.init(microConfig)
+
   await orm.getMigrator().up()
 
   const app = express()
 
   const RedisStore = connectRedis(session)
-  const redisClient = redis.createClient()
+  const redis = new Redis()
 
   app.use(
     cors({
@@ -33,9 +37,9 @@ const main = async () => {
 
   app.use(
     session({
-      name: 'qid',
+      name: COOKIE_NAME,
       store: new RedisStore({
-        client: redisClient,
+        client: redis,
         disableTouch: true,
       }),
 
@@ -56,7 +60,7 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }) => ({ em: orm.em, req, res }),
+    context: ({ req, res }) => ({ em: orm.em, req, res, redis }),
   })
 
   apolloserver.applyMiddleware({
