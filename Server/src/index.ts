@@ -1,8 +1,8 @@
 import 'reflect-metadata'
-import { MikroORM } from '@mikro-orm/core'
+//import { MikroORM } from '@mikro-orm/core'
 import { COOKIE_NAME, __prod__ } from './entities/constants'
 // import { Post } from './entities/Post';
-import microConfig from './mikro-orm.config'
+//import microConfig from './mikro-orm.config'
 import express from 'express'
 import { ApolloServer } from 'apollo-server-express'
 import { buildSchema } from 'type-graphql'
@@ -15,13 +15,31 @@ import connectRedis from 'connect-redis'
 //import { MyContext } from './types'
 import cors from 'cors'
 
+import { createConnection } from 'typeorm'
+import { Post } from './entities/Post'
+import { User } from './entities/User'
+import path from 'path'
+
+//rerunnn
+
 //import { sendEmail } from './utils/sendEmail'
 // https://ethereal.email/message/YHdn9OPgXlMKjniaYHdn9th64QXwHUBlAAAAAc.0DmiqdQs6AGCEBpozz98
 
 const main = async () => {
-  const orm = await MikroORM.init(microConfig)
+  const conn = await createConnection({
+    type: 'postgres',
+    database: 'reditclonetwo',
+    username: 'postgres',
+    password: 'postgres',
+    logging: true,
+    synchronize: true,
+    migrations: [path.join(__dirname, './migrations/*')],
+    entities: [Post, User],
+  })
+  conn.runMigrations()
 
-  await orm.getMigrator().up()
+  //const orm = await MikroORM.init(microConfig)
+  //await orm.getMigrator().up()
 
   const app = express()
 
@@ -60,7 +78,13 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }) => ({ em: orm.em, req, res, redis }),
+    context: ({ req, res }) => ({
+      // em: orm.em,
+
+      req,
+      res,
+      redis,
+    }),
   })
 
   apolloserver.applyMiddleware({

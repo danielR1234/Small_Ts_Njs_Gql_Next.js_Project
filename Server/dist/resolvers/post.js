@@ -24,83 +24,114 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PostResolver = void 0;
 const Post_1 = require("../entities/Post");
 const type_graphql_1 = require("type-graphql");
+const isAUth_1 = require("../middleware/isAUth");
+const typeorm_1 = require("typeorm");
+let PostInput = class PostInput {
+};
+__decorate([
+    type_graphql_1.Field(),
+    __metadata("design:type", String)
+], PostInput.prototype, "title", void 0);
+__decorate([
+    type_graphql_1.Field(),
+    __metadata("design:type", String)
+], PostInput.prototype, "text", void 0);
+PostInput = __decorate([
+    type_graphql_1.InputType()
+], PostInput);
 let PostResolver = class PostResolver {
-    posts({ em }) {
+    textSnippet(root) {
+        return root.text.slice(0, 50);
+    }
+    posts(limit, cursor) {
         return __awaiter(this, void 0, void 0, function* () {
-            return em.find(Post_1.Post, {});
+            const realLimit = Math.min(50, limit);
+            const qb = typeorm_1.getConnection()
+                .getRepository(Post_1.Post)
+                .createQueryBuilder('p')
+                .orderBy('"createdAt"', 'DESC')
+                .take(realLimit);
+            if (cursor) {
+                qb.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
+            }
+            return qb.getMany();
         });
     }
-    post(id, { em }) {
-        return em.findOne(Post_1.Post, id);
+    post(id) {
+        return Post_1.Post.findOne(id);
     }
-    createPost(title, { em }) {
+    createPost(input, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const post = em.create(Post_1.Post, { title });
-            yield em.persistAndFlush(post);
-            return post;
+            return Post_1.Post.create(Object.assign(Object.assign({}, input), { creatorId: req.session.userId })).save();
         });
     }
-    updatePost(id, title, { em }) {
+    updatePost(id, title) {
         return __awaiter(this, void 0, void 0, function* () {
-            const post = yield em.findOne(Post_1.Post, id);
+            const post = yield Post_1.Post.findOne(id);
             if (!post) {
                 return null;
             }
             if (typeof title !== 'undefined') {
-                post.title = title;
-                yield em.persistAndFlush(post);
+                yield Post_1.Post.update({ id }, { title });
             }
             return post;
         });
     }
-    deletePost(id, { em }) {
+    deletePost(id) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield em.nativeDelete(Post_1.Post, id);
+            yield Post_1.Post.delete(id);
             return true;
         });
     }
 };
 __decorate([
-    type_graphql_1.Query(() => [Post_1.Post]),
-    __param(0, type_graphql_1.Ctx()),
+    type_graphql_1.FieldResolver(() => String),
+    __param(0, type_graphql_1.Root()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Post_1.Post]),
+    __metadata("design:returntype", void 0)
+], PostResolver.prototype, "textSnippet", null);
+__decorate([
+    type_graphql_1.Query(() => [Post_1.Post]),
+    __param(0, type_graphql_1.Arg('limit', () => type_graphql_1.Int)),
+    __param(1, type_graphql_1.Arg('cursor', () => String, { nullable: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "posts", null);
 __decorate([
     type_graphql_1.Query(() => Post_1.Post, { nullable: true }),
-    __param(0, type_graphql_1.Arg('id')), __param(1, type_graphql_1.Ctx()),
+    __param(0, type_graphql_1.Arg('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "post", null);
 __decorate([
     type_graphql_1.Mutation(() => Post_1.Post),
-    __param(0, type_graphql_1.Arg('title')),
+    type_graphql_1.UseMiddleware(isAUth_1.isAuth),
+    __param(0, type_graphql_1.Arg('input')),
     __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [PostInput, Object]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "createPost", null);
 __decorate([
     type_graphql_1.Mutation(() => Post_1.Post, { nullable: true }),
     __param(0, type_graphql_1.Arg('id')),
     __param(1, type_graphql_1.Arg('title', () => String, { nullable: true })),
-    __param(2, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, String, Object]),
+    __metadata("design:paramtypes", [Number, String]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "updatePost", null);
 __decorate([
     type_graphql_1.Mutation(() => Boolean),
     __param(0, type_graphql_1.Arg('id')),
-    __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], PostResolver.prototype, "deletePost", null);
 PostResolver = __decorate([
-    type_graphql_1.Resolver()
+    type_graphql_1.Resolver(Post_1.Post)
 ], PostResolver);
 exports.PostResolver = PostResolver;
 //# sourceMappingURL=post.js.map

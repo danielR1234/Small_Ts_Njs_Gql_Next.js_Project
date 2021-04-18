@@ -27,7 +27,9 @@ const Login: React.FC<{}> = ({}) => {
           } else if (response.data?.login.user) {
             //wrokes
 
-            console.log('herre')
+            if (typeof router.query.next === 'string') {
+              router.push(router.query.next)
+            }
             router.push('/')
           }
         }}
