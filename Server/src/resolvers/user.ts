@@ -8,6 +8,8 @@ import {
   Ctx,
   ObjectType,
   Query,
+  Root,
+  FieldResolver,
 } from 'type-graphql'
 import argon2 from 'argon2'
 //import { EntityManager } from '@mikro-orm/postgresql'
@@ -36,8 +38,19 @@ class UserResponse {
   user?: User
 }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
+  @FieldResolver(() => String)
+  email(@Root() user: User, @Ctx() { req }: MyContext) {
+    /// this is the curren tuser and it is ok to see them ther own emial
+    if (req.session.userId === user.id) {
+      return user.email
+    }
+
+    //curent user wants to see someone else emial
+    return ''
+  }
+
   @Mutation(() => UserResponse)
   async changePassword(
     @Arg('token') token: string,
