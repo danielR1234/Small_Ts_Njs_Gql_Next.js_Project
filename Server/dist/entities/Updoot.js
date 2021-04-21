@@ -11,8 +11,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Updoot = void 0;
 const typeorm_1 = require("typeorm");
-const Post_1 = require("./Post");
 const User_1 = require("./User");
+const Post_1 = require("./Post");
 let Updoot = class Updoot extends typeorm_1.BaseEntity {
 };
 __decorate([
@@ -32,8 +32,10 @@ __decorate([
     __metadata("design:type", Number)
 ], Updoot.prototype, "postId", void 0);
 __decorate([
-    typeorm_1.ManyToOne(() => Post_1.Post, (post) => post.updoots),
-    __metadata("design:type", User_1.User)
+    typeorm_1.ManyToOne(() => Post_1.Post, (post) => post.updoots, {
+        onDelete: 'CASCADE',
+    }),
+    __metadata("design:type", Post_1.Post)
 ], Updoot.prototype, "post", void 0);
 Updoot = __decorate([
     typeorm_1.Entity()
